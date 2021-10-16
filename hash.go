@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
-	"math"
+	"fmt"
 )
 
 type HashType int
@@ -14,26 +14,6 @@ const (
 	MD5 HashType = iota
 	SHA1
 )
-
-type Alphabet struct {
-	alphabet      string
-	min           int
-	max           int
-	possibilities int
-}
-
-func GenerateAlphabet(alphabet string, min, max int) Alphabet {
-	var result float64
-	for i := min; i <= max; i++ {
-		result += math.Pow(float64(len(alphabet)), float64(i))
-	}
-	return Alphabet{
-		alphabet:      alphabet,
-		min:           min,
-		max:           max,
-		possibilities: int(result),
-	}
-}
 
 func Hash(input string, method HashType) (string, error) {
 	var hash []byte
@@ -47,4 +27,22 @@ func Hash(input string, method HashType) (string, error) {
 		return "", errors.New("Unknown hash method")
 	}
 	return hex.EncodeToString(hash[:]), nil
+}
+
+func (a *Alphabet) I2c(input int) string {
+	coeff := len(a.alphabet)
+	for input >= coeff {
+		input = input - coeff
+		coeff *= len(a.alphabet)
+	}
+
+	var str string
+	for input > len(a.alphabet) {
+		letter := input % len(a.alphabet)
+		fmt.Println(letter)
+		str = string(a.alphabet[letter]) + str
+		input = input / len(a.alphabet)
+	}
+
+	return str
 }

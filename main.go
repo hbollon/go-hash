@@ -20,4 +20,9 @@ func main() {
 		logrus.Fatal(err)
 	}
 	fmt.Printf("'Salut' in SHA1: %s\n", hash)
+
+	alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 4, 4)
+	fmt.Printf("Alphabet: %+v\n", alphabetInstance)
+
+	fmt.Printf("I2C of 1234: %s\n", alphabetInstance.I2c(1234))
 }
