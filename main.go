@@ -24,5 +24,5 @@ func main() {
 	alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 4, 4)
 	fmt.Printf("Alphabet: %+v\n", alphabetInstance)
 
-	fmt.Printf("I2C of 1234: %s\n", alphabetInstance.I2c(1234))
+	fmt.Printf("I2C of 142678997: %s\n", alphabetInstance.I2c(142678997))
 }

@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"math"
 )
 
 type HashType int
@@ -29,20 +29,31 @@ func Hash(input string, method HashType) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func (a *Alphabet) I2c(input int) string {
-	coeff := len(a.alphabet)
+func (a *Alphabet) I2c(input uint64) string {
+	var size, index int
+	for size = a.min; size <= a.max; size++ {
+		if a.levelledPossibilities[index] >= input {
+			break
+		}
+		index++
+	}
+
+	return a.i2cSameSize(input, size)
+}
+
+func (a *Alphabet) i2cSameSize(input uint64, size int) string {
+	coeff := uint64(a.length)
 	for input >= coeff {
-		input = input - coeff
-		coeff *= len(a.alphabet)
+		input -= coeff
+		coeff *= uint64(a.length)
 	}
 
-	var str string
-	for input > len(a.alphabet) {
-		letter := input % len(a.alphabet)
-		fmt.Println(letter)
-		str = string(a.alphabet[letter]) + str
-		input = input / len(a.alphabet)
+	var strBuilder string
+	for i := 0; i < size; i++ {
+		letter := input % uint64(a.length)
+		strBuilder = string(a.alphabet[letter]) + strBuilder
+		input = uint64(math.RoundToEven(float64(input) / float64(a.length)))
 	}
 
-	return str
+	return strBuilder
 }
