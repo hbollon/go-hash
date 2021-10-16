@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"math"
@@ -15,7 +16,7 @@ const (
 	SHA1
 )
 
-func Hash(input string, method HashType) (string, error) {
+func Hash(input string, method HashType) ([]byte, error) {
 	var hash []byte
 	if method == MD5 {
 		tmp := md5.Sum([]byte(input))
@@ -24,9 +25,14 @@ func Hash(input string, method HashType) (string, error) {
 		tmp := sha1.Sum([]byte(input))
 		hash = tmp[:]
 	} else {
-		return "", errors.New("Unknown hash method")
+		return nil, errors.New("Unknown hash method")
 	}
-	return hex.EncodeToString(hash[:]), nil
+	return hash, nil
+}
+
+func HashToString(input string, method HashType) (string, error) {
+	hash, err := Hash(input, method)
+	return hex.EncodeToString(hash[:]), err
 }
 
 func (a *Alphabet) I2c(input uint64) string {
@@ -56,4 +62,10 @@ func (a *Alphabet) i2cSameSize(input uint64, size int) string {
 	}
 
 	return strBuilder
+}
+
+func (a *Alphabet) H2i(hash []byte, y uint64) uint64 {
+	buf := hash[:8]
+	out := binary.LittleEndian.Uint64(buf)
+	return (out + y) % uint64(a.possibilities)
 }
