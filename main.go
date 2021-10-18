@@ -22,10 +22,13 @@ func main() {
 	}
 	fmt.Printf("'Salut' in SHA1: %s\n", hashStr)
 
-	alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 4, 4)
+	alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 4, 5)
 	fmt.Printf("Alphabet: %+v\n", alphabetInstance)
-
 	fmt.Printf("I2C of 142678997: %s\n", alphabetInstance.I2c(142678997))
+
+	alphabetInstance = GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 4, 4)
+	fmt.Printf("Alphabet: %+v\n", alphabetInstance)
+	fmt.Printf("I2C of 1234: %s\n", alphabetInstance.I2c(1234))
 
 	alphabetInstance = GenerateAlphabet("abcdefghijklmnopqrstuvwxyz", 4, 5)
 	fmt.Printf("Alphabet: %+v\n", alphabetInstance)

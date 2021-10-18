@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"math"
 )
 
 type HashType int
@@ -36,7 +35,8 @@ func HashToString(input string, method HashType) (string, error) {
 }
 
 func (a *Alphabet) I2c(input uint64) string {
-	var size, index int
+	var size int
+	index := a.min - 1
 	for size = a.min; size <= a.max; size++ {
 		if a.levelledPossibilities[index] >= input {
 			break
@@ -49,6 +49,11 @@ func (a *Alphabet) I2c(input uint64) string {
 
 func (a *Alphabet) i2cSameSize(input uint64, size int) string {
 	coeff := uint64(a.length)
+	if a.min >= 2 {
+		for i := 0; i < a.min-1; i++ {
+			input += a.levelledPossibilities[i]
+		}
+	}
 	for input >= coeff {
 		input -= coeff
 		coeff *= uint64(a.length)
@@ -58,7 +63,7 @@ func (a *Alphabet) i2cSameSize(input uint64, size int) string {
 	for i := 0; i < size; i++ {
 		letter := input % uint64(a.length)
 		strBuilder = string(a.alphabet[letter]) + strBuilder
-		input = uint64(math.RoundToEven(float64(input) / float64(a.length)))
+		input /= uint64(a.length)
 	}
 
 	return strBuilder

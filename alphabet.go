@@ -16,9 +16,11 @@ type Alphabet struct {
 func GenerateAlphabet(alphabet string, min, max int) Alphabet {
 	var result uint64
 	var index int
-	levelledResult := make([]uint64, (max-min)+1)
-	for i := min; i <= max; i++ {
-		result += uint64(math.Pow(float64(len(alphabet)), float64(i)))
+	levelledResult := make([]uint64, max)
+	for i := 1; i <= max; i++ {
+		if i >= min {
+			result += uint64(math.Pow(float64(len(alphabet)), float64(i)))
+		}
 		levelledResult[index] = uint64(math.Pow(float64(len(alphabet)), float64(i)))
 		index++
 	}
