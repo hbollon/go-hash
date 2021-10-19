@@ -8,11 +8,11 @@ import (
 	"errors"
 )
 
-type HashType int
+type HashType string
 
 const (
-	MD5 HashType = iota
-	SHA1
+	MD5  HashType = "MD5"
+	SHA1 HashType = "SHA1"
 )
 
 func Hash(input string, method HashType) ([]byte, error) {
@@ -81,7 +81,7 @@ func (a *Alphabet) I2i(input, y uint64) uint64 {
 	return a.H2i(hash, y)
 }
 
-func (a *Alphabet) NewString(idx, width uint64) uint64 {
+func (a *Alphabet) NewChain(idx, width uint64) uint64 {
 	for i := uint64(0); i < width; i++ {
 		idx = a.I2i(idx, i)
 	}
