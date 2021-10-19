@@ -38,4 +38,5 @@ func main() {
 	}
 	logrus.Infof("'oups' in MD5: %s\n", hex.EncodeToString(hash))
 	fmt.Printf("H2I of \"oups\": %d\n", alphabetInstance.H2i(hash, 1))
+	fmt.Printf("New string with width of 1000 and idx of 1234: %d\n", alphabetInstance.NewString(1234, 1000))
 }

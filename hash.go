@@ -74,3 +74,16 @@ func (a *Alphabet) H2i(hash []byte, y uint64) uint64 {
 	out := binary.LittleEndian.Uint64(buf)
 	return (out + y) % uint64(a.possibilities)
 }
+
+func (a *Alphabet) I2i(input, y uint64) uint64 {
+	str := a.I2c(input)
+	hash, _ := Hash(str, MD5)
+	return a.H2i(hash, y)
+}
+
+func (a *Alphabet) NewString(idx, width uint64) uint64 {
+	for i := uint64(0); i < width; i++ {
+		idx = a.I2i(idx, i)
+	}
+	return idx
+}
