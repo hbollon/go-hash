@@ -52,5 +52,6 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Infof("Loaded table: %s\n", spew.Sdump(table))
+	logrus.Info("Loaded table:")
+	table.Print()
 }

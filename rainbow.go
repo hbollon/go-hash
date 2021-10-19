@@ -126,3 +126,18 @@ func (r *RainbowTable) Import(filename string) error {
 
 	return nil
 }
+
+func (r *RainbowTable) Print() {
+	fmt.Printf("Hash method: %s\n", r.hashMethod)
+	fmt.Printf("Alphabet: %s\n", r.alphabet.alphabet)
+	fmt.Printf("Alphabet lenght: %d\n", r.alphabet.length)
+	fmt.Printf("Min size: %d\n", r.alphabet.min)
+	fmt.Printf("Max size: %d\n", r.alphabet.max)
+	fmt.Printf("Possibilities: %d\n", r.alphabet.possibilities)
+	fmt.Printf("Height: %d\n", r.height)
+	fmt.Printf("Width: %d\n\n", r.width)
+	fmt.Println("Content:")
+	for i := 0; i < r.height; i++ {
+		fmt.Printf("Chain %d: %d --> %d\n", i, r.table[i][0], r.table[i][r.width-1])
+	}
+}
