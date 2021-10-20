@@ -2,12 +2,15 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Chain []uint64
@@ -140,4 +143,61 @@ func (r *RainbowTable) Print() {
 	for i := 0; i < r.height; i++ {
 		fmt.Printf("Chain %d: %d --> %d\n", i, r.table[i][0], r.table[i][r.width-1])
 	}
+}
+
+func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
+	var nbCandidates int
+	for t := r.width - 1; t < 0; t-- {
+		idx := r.alphabet.H2i(hash, uint64(t))
+		for i := t + 1; i < r.width; i++ {
+			idx = r.alphabet.I2i(idx, uint64(i))
+		}
+		if a, b, err := r.Search(idx); err == nil {
+			for i := a; i <= b; i++ {
+				if out, valid := r.CheckCandidate(hash, t, r.table[i][0]); valid {
+					return out, nil
+				} else {
+					nbCandidates++
+				}
+			}
+		}
+	}
+
+	return "", errors.New("No candidate found")
+}
+
+func (r *RainbowTable) Search(idx uint64) (A int, B int, Err error) {
+	A = sort.Search(r.height, func(i int) bool {
+		return r.table[i][r.width-1] == idx
+	})
+	if A < r.height {
+		for j := A - 1; j > 0; j-- {
+			if r.table[j][r.width-1] != idx {
+				break
+			}
+			A = j
+		}
+		for j := A + 1; j < r.height; j++ {
+			if r.table[j][r.width-1] != idx {
+				break
+			}
+			B = j
+		}
+		return
+	}
+
+	return 0, 0, errors.New("Not found")
+}
+
+func (r *RainbowTable) CheckCandidate(hash []byte, t int, idx uint64) (string, bool) {
+	for i := 1; i < t; i++ {
+		idx = r.alphabet.I2i(idx, uint64(i))
+	}
+	clair := r.alphabet.I2c(idx)
+	h2, err := Hash(clair, r.hashMethod)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	return string(clair), bytes.Equal(h2, hash)
 }
