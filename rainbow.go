@@ -147,7 +147,7 @@ func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
 	for t := r.width - 1; t < 0; t-- {
 		idx := r.alphabet.H2i(hash, uint64(t))
 		for i := t + 1; i < r.width; i++ {
-			idx = r.alphabet.I2i(idx, uint64(i))
+			idx = r.alphabet.I2i(idx, uint64(i), r.hashMethod)
 		}
 		if a, b, err := r.Search(idx); err == nil {
 			for i := a; i <= b; i++ {

@@ -75,15 +75,15 @@ func (a *Alphabet) H2i(hash []byte, y uint64) uint64 {
 	return (out + y) % uint64(a.possibilities)
 }
 
-func (a *Alphabet) I2i(input, y uint64) uint64 {
+func (a *Alphabet) I2i(input, y uint64, hashMethod HashType) uint64 {
 	str := a.I2c(input)
-	hash, _ := Hash(str, MD5)
+	hash, _ := Hash(str, hashMethod)
 	return a.H2i(hash, y)
 }
 
-func (a *Alphabet) NewChain(idx, width uint64) uint64 {
-	for i := uint64(0); i < width; i++ {
-		idx = a.I2i(idx, i)
+func (a *Alphabet) NewChain(idx, width uint64, hashMethod HashType) uint64 {
+	for i := uint64(1); i < width; i++ {
+		idx = a.I2i(idx, i, hashMethod)
 	}
 	return idx
 }
