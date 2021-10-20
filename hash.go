@@ -43,6 +43,9 @@ func (a *Alphabet) I2c(input uint64) string {
 		}
 		index++
 	}
+	if size > a.max {
+		size = a.max
+	}
 
 	return a.i2cSameSize(input, size)
 }

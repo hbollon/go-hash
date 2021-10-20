@@ -3,7 +3,12 @@ package main
 import (
 	"math"
 	"math/rand"
+	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 type Alphabet struct {
 	alphabet              string
