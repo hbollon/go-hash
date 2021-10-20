@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -144,7 +146,7 @@ func (r *RainbowTable) Print() {
 
 func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
 	var nbCandidates int
-	for t := r.width - 1; t < 0; t-- {
+	for t := r.width - 1; t > 0; t-- {
 		idx := r.alphabet.H2i(hash, uint64(t))
 		for i := t + 1; i < r.width; i++ {
 			idx = r.alphabet.I2i(idx, uint64(i), r.hashMethod)
@@ -180,6 +182,7 @@ func (r *RainbowTable) Search(idx uint64) (A int, B int, Err error) {
 			}
 			B = j
 		}
+		fmt.Printf("A: %d, B: %d, idx; %d\n", A, B, idx)
 		return
 	}
 
@@ -187,14 +190,24 @@ func (r *RainbowTable) Search(idx uint64) (A int, B int, Err error) {
 }
 
 func (r *RainbowTable) CheckCandidate(hash []byte, t int, idx uint64) (string, bool) {
-	for i := 1; i < t; i++ {
-		idx = r.alphabet.I2i(idx, uint64(i))
-	}
+	idx = r.alphabet.NewChain(idx, uint64(t), r.hashMethod)
 	clair := r.alphabet.I2c(idx)
 	h2, err := Hash(clair, r.hashMethod)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
+	fmt.Printf("h1: %s, h2 %s\n", hex.EncodeToString(hash), hex.EncodeToString(h2))
 	return string(clair), bytes.Equal(h2, hash)
+}
+
+func (r *RainbowTable) Stats() {
+	m := float64(r.height)
+	v := 1.0
+	for i := 0; i < r.width; i++ {
+		v = v * (1 - m/float64(r.alphabet.possibilities))
+		m = float64(r.alphabet.possibilities) * (1 - math.Exp(float64(-m)/float64(r.alphabet.possibilities)))
+	}
+	coverage := 100 * (1 - v)
+	logrus.Infof("Coverage of the rainbow table: %.2f%%", coverage)
 }
