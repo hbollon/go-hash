@@ -13,7 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Chain []uint64
+type Chain struct {
+	start uint64
+	end   uint64
+}
 
 type RainbowTable struct {
 	height     int
@@ -26,20 +29,17 @@ type RainbowTable struct {
 func CreateRaindowTable(height, width int, a Alphabet, hash HashType) RainbowTable {
 	table := make([]Chain, height)
 	for i := 0; i < height; i++ {
-		table[i] = make(Chain, width)
+		table[i] = Chain{}
 	}
 
 	for i := 0; i < height; i++ {
 		index := a.RandomIndex()
-		table[i][0] = index
-		for j := 1; j < width; j++ {
-			index = a.I2i(index, uint64(j))
-			table[i][j] = index
-		}
+		table[i].start = index
+		table[i].end = a.NewChain(index, uint64(width), hash)
 	}
 
 	sort.Slice(table[:], func(i, j int) bool {
-		return table[i][width-1] < table[j][width-1]
+		return table[i].end < table[j].end
 	})
 	return RainbowTable{height, width, table, a, hash}
 }
@@ -59,10 +59,7 @@ func (r *RainbowTable) Export(filename string) error {
 	}
 
 	for i := 0; i < r.height; i++ {
-		f.WriteString("\n")
-		for j := 0; j < r.width; j++ {
-			f.WriteString(fmt.Sprintf("%d ", r.table[i][j]))
-		}
+		f.WriteString(fmt.Sprintf("\n%d %d", r.table[i].start, r.table[i].end))
 	}
 
 	return nil
@@ -107,7 +104,7 @@ func (r *RainbowTable) Import(filename string) error {
 		}
 	}
 
-	if r.table == nil || len(r.table) != r.height || len(r.table[0]) != r.width {
+	if r.table == nil || len(r.table) != r.height {
 		newTable := CreateRaindowTable(r.height, r.width, r.alphabet, r.hashMethod)
 		*r = newTable
 	}
@@ -116,10 +113,10 @@ func (r *RainbowTable) Import(filename string) error {
 	var i int
 	for sc.Scan() {
 		tokens := strings.Split(sc.Text(), " ")
-		for j := 0; j < r.width; j++ {
-			entry, _ := strconv.Atoi(tokens[j])
-			r.table[i][j] = uint64(entry)
-		}
+		start, _ := strconv.Atoi(tokens[0])
+		end, _ := strconv.Atoi(tokens[1])
+		r.table[i].start = uint64(start)
+		r.table[i].end = uint64(end)
 		i++
 	}
 
@@ -141,7 +138,7 @@ func (r *RainbowTable) Print() {
 	fmt.Printf("Width: %d\n\n", r.width)
 	fmt.Println("Content:")
 	for i := 0; i < r.height; i++ {
-		fmt.Printf("Chain %d: %d --> %d\n", i, r.table[i][0], r.table[i][r.width-1])
+		fmt.Printf("Chain %d: %d --> %d\n", i, r.table[i].start, r.table[i].end)
 	}
 }
 
@@ -154,7 +151,7 @@ func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
 		}
 		if a, b, err := r.Search(idx); err == nil {
 			for i := a; i <= b; i++ {
-				if out, valid := r.CheckCandidate(hash, t, r.table[i][0]); valid {
+				if out, valid := r.CheckCandidate(hash, t, r.table[i].start); valid {
 					return out, nil
 				} else {
 					nbCandidates++
@@ -168,17 +165,17 @@ func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
 
 func (r *RainbowTable) Search(idx uint64) (A int, B int, Err error) {
 	A = sort.Search(r.height, func(i int) bool {
-		return r.table[i][r.width-1] == idx
+		return r.table[i].end == idx
 	})
 	if A < r.height {
 		for j := A - 1; j > 0; j-- {
-			if r.table[j][r.width-1] != idx {
+			if r.table[j].end != idx {
 				break
 			}
 			A = j
 		}
 		for j := A + 1; j < r.height; j++ {
-			if r.table[j][r.width-1] != idx {
+			if r.table[j].end != idx {
 				break
 			}
 			B = j
