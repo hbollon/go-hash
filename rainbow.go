@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -34,7 +33,9 @@ func CreateRaindowTable(height, width int, a Alphabet, hash HashType) RainbowTab
 		table[i] = Chain{}
 	}
 
+	CurrentLoading = LoadingStatus{}
 	for i := 0; i < height; i++ {
+		CurrentLoading.Percentage = float64(i) / float64(height)
 		index := a.RandomIndex()
 		table[i].start = index
 		table[i].end = a.NewChain(index, uint64(width), hash)
@@ -43,6 +44,7 @@ func CreateRaindowTable(height, width int, a Alphabet, hash HashType) RainbowTab
 	sort.Slice(table[:], func(i, j int) bool {
 		return table[i].end < table[j].end
 	})
+	CurrentLoading.Done = true
 	return RainbowTable{height, width, table, a, hash}
 }
 
@@ -129,24 +131,31 @@ func (r *RainbowTable) Import(filename string) error {
 	return nil
 }
 
-func (r *RainbowTable) Print() {
-	fmt.Printf("Hash method: %s\n", r.hashMethod)
-	fmt.Printf("Alphabet: %s\n", r.alphabet.alphabet)
-	fmt.Printf("Alphabet lenght: %d\n", r.alphabet.length)
-	fmt.Printf("Min size: %d\n", r.alphabet.min)
-	fmt.Printf("Max size: %d\n", r.alphabet.max)
-	fmt.Printf("Possibilities: %d\n", r.alphabet.possibilities)
-	fmt.Printf("Height: %d\n", r.height)
-	fmt.Printf("Width: %d\n\n", r.width)
-	fmt.Println("Content:")
-	for i := 0; i < r.height; i++ {
-		fmt.Printf("Chain %d: %d --> %d\n", i, r.table[i].start, r.table[i].end)
-	}
+func (r *RainbowTable) Print() string {
+	var output string
+	output += fmt.Sprintf("Hash method: %s\n", r.hashMethod)
+	output += fmt.Sprintf("Alphabet: %s\n", r.alphabet.alphabet)
+	output += fmt.Sprintf("Alphabet lenght: %d\n", r.alphabet.length)
+	output += fmt.Sprintf("Min size: %d\n", r.alphabet.min)
+	output += fmt.Sprintf("Max size: %d\n", r.alphabet.max)
+	output += fmt.Sprintf("Possibilities: %d\n", r.alphabet.possibilities)
+	output += fmt.Sprintf("Height: %d\n", r.height)
+	output += fmt.Sprintf("Width: %d", r.width)
+
+	// Disabled for now since it give an unreadable output
+	// output += fmt.Sprintf("Content:")
+	// for i := 0; i < r.height; i++ {
+	// 	output += fmt.Sprintf("Chain %d: %d --> %d\n", i, r.table[i].start, r.table[i].end)
+	// }
+
+	return output
 }
 
 func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
 	var nbCandidates int
+	CurrentLoading = LoadingStatus{}
 	for t := r.width - 1; t > 0; t-- {
+		CurrentLoading.Percentage = float64(r.width-t) / float64(r.width)
 		idx := r.alphabet.H2i(hash, uint64(t))
 		for i := t + 1; i < r.width; i++ {
 			idx = r.alphabet.I2i(idx, uint64(i), r.hashMethod)
@@ -154,6 +163,8 @@ func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
 		if a, b, err := r.Search(idx); err == nil {
 			for i := a; i <= b; i++ {
 				if out, valid := r.CheckCandidate(hash, t, r.table[i].start); valid {
+					CurrentLoading.Res = out
+					CurrentLoading.Done = true
 					return out, nil
 				} else {
 					nbCandidates++
@@ -162,7 +173,9 @@ func (r *RainbowTable) Invert(hash []byte) (out string, err error) {
 		}
 	}
 
-	return "", errors.New("No candidate found")
+	err = errors.New("No candidate found")
+	CurrentLoading.Error = err
+	return
 }
 
 func (r *RainbowTable) Search(idx uint64) (A int, B int, Err error) {
@@ -182,7 +195,7 @@ func (r *RainbowTable) Search(idx uint64) (A int, B int, Err error) {
 			}
 			B = j
 		}
-		fmt.Printf("A: %d, B: %d, idx; %d\n", A, B, idx)
+		//fmt.Printf("A: %d, B: %d, idx; %d\n", A, B, idx)
 		return
 	}
 
@@ -197,11 +210,11 @@ func (r *RainbowTable) CheckCandidate(hash []byte, t int, idx uint64) (string, b
 		logrus.Fatal(err)
 	}
 
-	fmt.Printf("h1: %s, h2 %s\n", hex.EncodeToString(hash), hex.EncodeToString(h2))
+	// fmt.Printf("h1: %s, h2 %s\n", hex.EncodeToString(hash), hex.EncodeToString(h2))
 	return string(clair), bytes.Equal(h2, hash)
 }
 
-func (r *RainbowTable) Stats() {
+func (r *RainbowTable) Stats() string {
 	m := float64(r.height)
 	v := 1.0
 	for i := 0; i < r.width; i++ {
@@ -209,5 +222,5 @@ func (r *RainbowTable) Stats() {
 		m = float64(r.alphabet.possibilities) * (1 - math.Exp(float64(-m)/float64(r.alphabet.possibilities)))
 	}
 	coverage := 100 * (1 - v)
-	logrus.Infof("Coverage of the rainbow table: %.2f%%", coverage)
+	return fmt.Sprintf("Coverage of the rainbow table: %.2f%%", coverage)
 }

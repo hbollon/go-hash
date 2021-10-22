@@ -1,14 +1,20 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/davecgh/go-spew/spew"
-	"github.com/sirupsen/logrus"
+var (
+	CurrentTable   RainbowTable
+	CurrentLoading LoadingStatus
 )
 
+type LoadingStatus struct {
+	Percentage float64
+	Done       bool
+	Res        string
+	Error      error
+}
+
 func main() {
-	fmt.Println("Welcome to go-hash project!")
+	launchTui()
+	// fmt.Println("Welcome to go-hash project!")
 	// alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 4, 5)
 	// spew.Dump(alphabetInstance)
 	// input := uint64(1)
@@ -61,16 +67,16 @@ func main() {
 	// logrus.Info("Loaded table:")
 	// table.Print()
 
-	alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 4, 4)
-	table := CreateRaindowTable(100000, 1000, alphabetInstance, MD5)
-	spew.Dump(alphabetInstance)
-	table.Print()
-	//logrus.Infof("Generate random rainbow table of 100000*1000: %s\n", spew.Sdump(table))
-	hash, _ := Hash("ABCD", MD5)
-	if out, err := table.Invert(hash); out == "ABCD" && err == nil {
-		logrus.Info("Invert success!")
-	} else {
-		logrus.Errorf("Failed, output: %s, error: %s", out, err)
-	}
-	table.Stats()
+	// alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 4, 4)
+	// table := CreateRaindowTable(100000, 1000, alphabetInstance, MD5)
+	// spew.Dump(alphabetInstance)
+	// table.Print()
+	// //logrus.Infof("Generate random rainbow table of 100000*1000: %s\n", spew.Sdump(table))
+	// hash, _ := Hash("ABCD", MD5)
+	// if out, err := table.Invert(hash); out == "ABCD" && err == nil {
+	// 	logrus.Info("Invert success!")
+	// } else {
+	// 	logrus.Errorf("Failed, output: %s, error: %s", out, err)
+	// }
+	// table.Stats()
 }
