@@ -1,8 +1,9 @@
-package main
+package gohash
 
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
@@ -14,6 +15,19 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/sirupsen/logrus"
 )
+
+var (
+	CurrentTable   RainbowTable
+	CurrentLoading LoadingStatus
+	RunningTest    sync.WaitGroup
+)
+
+type LoadingStatus struct {
+	Percentage float64
+	Done       bool
+	Res        string
+	Error      error
+}
 
 // General stuff for styling the view
 var (
@@ -40,7 +54,7 @@ func LaunchTui() {
 		0,
 		0,
 		false,
-		30,
+		60,
 		0,
 		progress.NewModel(progress.WithDefaultGradient()),
 		false,
@@ -49,6 +63,7 @@ func LaunchTui() {
 			getUniqueInputView("Filename"),
 			getUniqueInputView("Filename"),
 			getCrackView(),
+			getTestView(),
 		},
 		false,
 		false,
@@ -59,6 +74,7 @@ func LaunchTui() {
 	if err := p.Start(); err != nil {
 		fmt.Println("could not start program:", err)
 	}
+	RunningTest.Wait()
 }
 
 type tickMsg struct{}
@@ -98,12 +114,17 @@ type views struct {
 	loadTable    inputs
 	getTableInfo inputs
 	crackHash    inputs
+	testsMenu    submenu
 }
 
 type inputs struct {
-	index        int
 	input        []textinput.Model
 	submitButton string
+}
+
+type submenu struct {
+	index   int
+	choices []string
 }
 
 func (m *model) returnToMenu() {
@@ -113,7 +134,7 @@ func (m *model) returnToMenu() {
 	m.InputProvided = false
 	m.Loaded = false
 	m.Loading = false
-	m.Ticks = 30
+	m.Ticks = 60
 	m.ErrorMsg = ""
 	payload = ""
 	m.ProgressBar = progress.NewModel(progress.WithDefaultGradient())
@@ -195,6 +216,20 @@ func getUniqueInputView(placeholder string) inputs {
 	i.input[0].Focus()
 	i.input[0].Prompt = focusedPrompt
 	i.input[0].TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(focusedTextColor))
+
+	return i
+}
+
+func getTestView() submenu {
+	i := submenu{
+		choices: []string{
+			"Hash function test cases",
+			"I2c function test cases",
+			"H2i function test cases",
+			"I2i function test cases",
+			"NewChain function test cases",
+		},
+	}
 
 	return i
 }
@@ -302,9 +337,10 @@ func updateChosen(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		if payload == "" {
 			payload = CurrentTable.Stats()
 		}
-		break
 	case 4:
 		return updateCrackHash(msg, m)
+	case 5:
+		return updateTests(msg, m)
 	default:
 		break
 	}
@@ -665,6 +701,52 @@ func updateCrackHash(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func updateTests(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "down":
+			m.Views.testsMenu.index += 1
+			if m.Views.testsMenu.index > 4 {
+				m.Views.testsMenu.index = 4
+			}
+		case "up":
+			m.Views.testsMenu.index -= 1
+			if m.Views.testsMenu.index < 0 {
+				m.Views.testsMenu.index = 0
+			}
+		case "tab":
+			m.Views.testsMenu.index += 1
+			if m.Views.testsMenu.index > 4 {
+				m.Views.testsMenu.index = 0
+			}
+		case "enter":
+			RunningTest.Add(1)
+			go func(callback int) {
+				switch callback {
+				case 0:
+					TestHash()
+				case 1:
+					TestI2c()
+				case 2:
+					TestH2i()
+				case 3:
+					TestI2i()
+				case 4:
+					TestNewChain()
+				default:
+					break
+				}
+				RunningTest.Done()
+			}(m.Views.testsMenu.index)
+			return m, tea.Quit
+		}
+	}
+
+	return m, nil
+}
+
 func updateInputs(msg tea.Msg, m model, inputs []textinput.Model) (model, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -693,12 +775,12 @@ func choicesView(m model) string {
 
 	choices := fmt.Sprintf(
 		"%s\n%s\n%s\n%s\n%s\n%s",
-		checkbox("Create and export rainbow table", c == 0),
-		checkbox("Load existing rainbow table", c == 1),
-		checkbox("Get table informations from file", c == 2),
-		checkbox("Compute current table statistics", c == 3),
-		checkbox("Crack hash using current rainbow table", c == 4),
-		checkbox("Execute specific demonstration test", c == 5),
+		cursor("Create and export rainbow table", c == 0),
+		cursor("Load existing rainbow table", c == 1),
+		cursor("Get table informations from file", c == 2),
+		cursor("Compute current table statistics", c == 3),
+		cursor("Crack hash using current rainbow table", c == 4),
+		cursor("Execute specific demonstration test", c == 5),
 	)
 
 	return fmt.Sprintf(tpl, choices, colorFg(strconv.Itoa(m.Ticks), "79"))
@@ -797,14 +879,23 @@ func chosenView(m model) string {
 
 	case 5:
 		msg = fmt.Sprintf("There is a bunch of %s comming with this project, which one do you want to %s?", keyword("tests"), keyword("execute"))
+		c := m.Views.testsMenu.index
+		content = fmt.Sprintf(
+			"%s\n%s\n%s\n%s\n%s",
+			cursor(m.Views.testsMenu.choices[0], c == 0),
+			cursor(m.Views.testsMenu.choices[1], c == 1),
+			cursor(m.Views.testsMenu.choices[2], c == 2),
+			cursor(m.Views.testsMenu.choices[3], c == 3),
+			cursor(m.Views.testsMenu.choices[4], c == 4),
+		)
 	default:
 		logrus.Fatal("Invalid input!")
 	}
 
-	return msg + "\n\n" + content + "\n\n" + subtle("up/down, tab: select") + dot + subtle("enter: choose") + dot + subtle("esc: quit")
+	return msg + "\n\n" + content + "\n\n" + subtle("up/down, tab: select") + dot + subtle("enter: choose") + dot + subtle("esc: back/quit")
 }
 
-func checkbox(label string, checked bool) string {
+func cursor(label string, checked bool) string {
 	if checked {
 		return colorFg("> "+label, "212")
 	}
@@ -848,8 +939,7 @@ func colorToHex(c colorful.Color) string {
 	return fmt.Sprintf("#%s%s%s", colorFloatToHex(c.R), colorFloatToHex(c.G), colorFloatToHex(c.B))
 }
 
-// Helper function for converting colors to hex. Assumes a value between 0 and
-// 1.
+// Helper function for converting colors to hex. Assumes a value between 0 and 1.
 func colorFloatToHex(f float64) (s string) {
 	s = strconv.FormatInt(int64(f*255), 16)
 	if len(s) == 1 {

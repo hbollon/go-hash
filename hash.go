@@ -1,4 +1,4 @@
-package main
+package gohash
 
 import (
 	"crypto/md5"
