@@ -35,7 +35,7 @@ var (
 	blurredSubmitButton = "[ Submit ]"
 )
 
-func launchTui() {
+func LaunchTui() {
 	initialModel := model{
 		0,
 		0,

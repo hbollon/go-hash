@@ -13,7 +13,7 @@ type LoadingStatus struct {
 }
 
 func main() {
-	launchTui()
+	LaunchTui()
 	// fmt.Println("Welcome to go-hash project!")
 	// alphabetInstance := GenerateAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 4, 5)
 	// spew.Dump(alphabetInstance)
