@@ -51,7 +51,8 @@ func (a *Alphabet) I2c(input uint64) string {
 }
 
 func (a *Alphabet) i2cSameSize(input uint64, size int) string {
-	coeff := uint64(a.length)
+	uintAlphSize := uint64(a.length)
+	coeff := uintAlphSize
 	if a.min >= 2 {
 		for i := 0; i < a.min-1; i++ {
 			input += a.levelledPossibilities[i]
@@ -59,14 +60,14 @@ func (a *Alphabet) i2cSameSize(input uint64, size int) string {
 	}
 	for input >= coeff {
 		input -= coeff
-		coeff *= uint64(a.length)
+		coeff *= uintAlphSize
 	}
 
 	var strBuilder string
 	for i := 0; i < size; i++ {
-		letter := input % uint64(a.length)
+		letter := input % uintAlphSize
 		strBuilder = string(a.alphabet[letter]) + strBuilder
-		input /= uint64(a.length)
+		input /= uintAlphSize
 	}
 
 	return strBuilder

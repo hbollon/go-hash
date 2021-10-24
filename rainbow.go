@@ -84,7 +84,6 @@ func (r *RainbowTable) Import(filename string) error {
 			switch i {
 			case 0:
 				r.hashMethod = HashType(line)
-				break
 			case 1:
 				tokens := strings.Split(line, " ")
 				min, _ := strconv.Atoi(tokens[1])
@@ -94,12 +93,10 @@ func (r *RainbowTable) Import(filename string) error {
 					min,
 					max,
 				)
-				break
 			case 2:
 				tokens := strings.Split(line, " ")
 				r.height, _ = strconv.Atoi(tokens[0])
 				r.width, _ = strconv.Atoi(tokens[1])
-				break
 			default:
 				break
 			}

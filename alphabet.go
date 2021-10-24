@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 }
 
 type Alphabet struct {
@@ -33,7 +33,7 @@ func GenerateAlphabet(alphabet string, min, max int) Alphabet {
 		length:                len(alphabet),
 		min:                   min,
 		max:                   max,
-		possibilities:         uint64(result),
+		possibilities:         result,
 		levelledPossibilities: levelledResult,
 	}
 }
