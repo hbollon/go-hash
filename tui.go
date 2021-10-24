@@ -60,8 +60,8 @@ func LaunchTui() {
 		false,
 		views{
 			getCreateTableInputs(),
-			getUniqueInputView("Filename"),
-			getUniqueInputView("Filename"),
+			getUniqueInputView("Filename (*.txt)"),
+			getUniqueInputView("Filename (*.txt)"),
 			getCrackView(),
 			getTestView(),
 		},
@@ -178,7 +178,7 @@ func getCreateTableInputs() inputs {
 	i.input[5].Placeholder = "Hash method (SHA1/MD5)"
 	i.input[5].Prompt = blurredPrompt
 
-	i.input[6].Placeholder = "Filename"
+	i.input[6].Placeholder = "Filename (*.txt)"
 	i.input[6].Prompt = blurredPrompt
 
 	return i
@@ -371,10 +371,34 @@ func updateCreateTable(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			case "enter":
 				if m.Index == 7 {
+					m.ErrorMsg = ""
+					type InputsValidation struct {
+						Alphabet string `validate:"required"`
+						Min      int    `validate:"required,numeric,gte=1"`
+						Max      int    `validate:"required,numeric,gte=1"`
+						Height   int    `validate:"required,numeric,gte=1"`
+						Width    int    `validate:"required,numeric,gte=1"`
+						Hash     string `validate:"required,is-hash-method"`
+						Filename string `validate:"required,contains=.txt"`
+					}
 					minSize, _ := strconv.Atoi(m.Views.createTable.input[1].Value())
 					maxSize, _ := strconv.Atoi(m.Views.createTable.input[2].Value())
 					height, _ := strconv.Atoi(m.Views.createTable.input[3].Value())
 					width, _ := strconv.Atoi(m.Views.createTable.input[4].Value())
+					testStruct := &InputsValidation{
+						Alphabet: m.Views.createTable.input[0].Value(),
+						Min:      minSize,
+						Max:      maxSize,
+						Height:   height,
+						Width:    width,
+						Hash:     m.Views.createTable.input[5].Value(),
+						Filename: m.Views.createTable.input[6].Value(),
+					}
+					if err := structValidator.Struct(testStruct); err != nil {
+						m.ErrorMsg = errorColor(err.Error())
+						return m, nil
+					}
+
 					m.InputProvided = true
 					m.Loading = true
 					go func() {
@@ -421,9 +445,8 @@ func updateCreateTable(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	case backToMenuMsg:
 		m.Loading = false
 		m.Loaded = true
-		m.Ticks = 10
 		prog := m.ProgressBar.SetPercent(1.0)
-		return m, tea.Batch(tick(), prog)
+		return m, prog
 	}
 
 	if !m.Loading && !m.Loaded {
@@ -474,7 +497,19 @@ func updateLoadTable(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					m.Index = 0
 				}
 			case "enter":
+				m.ErrorMsg = ""
 				if m.Index == 1 {
+					type InputsValidation struct {
+						Filename string `validate:"required,contains=.txt"`
+					}
+					testStruct := &InputsValidation{
+						Filename: m.Views.loadTable.input[0].Value(),
+					}
+					if err := structValidator.Struct(testStruct); err != nil {
+						m.ErrorMsg = errorColor(err.Error())
+						return m, nil
+					}
+
 					m.InputProvided = true
 					m.Loading = true
 					go func() {
@@ -499,7 +534,6 @@ func updateLoadTable(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	case backToMenuMsg:
 		m.Loading = false
 		m.Loaded = true
-		m.Ticks = 10
 		return m, tick()
 	}
 
@@ -551,7 +585,19 @@ func updateGetTableInfo(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					m.Index = 0
 				}
 			case "enter":
+				m.ErrorMsg = ""
 				if m.Index == 1 {
+					type InputsValidation struct {
+						Filename string `validate:"required,contains=.txt"`
+					}
+					testStruct := &InputsValidation{
+						Filename: m.Views.getTableInfo.input[0].Value(),
+					}
+					if err := structValidator.Struct(testStruct); err != nil {
+						m.ErrorMsg = errorColor(err.Error())
+						return m, nil
+					}
+
 					m.InputProvided = true
 					m.Loading = true
 					go func() {
@@ -619,7 +665,21 @@ func updateCrackHash(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					m.Index = 0
 				}
 			case "enter":
+				m.ErrorMsg = ""
 				if m.Index == 2 {
+					type InputsValidation struct {
+						TextToHash string `validate:"required"`
+						HashMethod string `validate:"required,is-hash-method"`
+					}
+					testStruct := &InputsValidation{
+						TextToHash: m.Views.crackHash.input[0].Value(),
+						HashMethod: m.Views.crackHash.input[1].Value(),
+					}
+					if err := structValidator.Struct(testStruct); err != nil {
+						m.ErrorMsg = errorColor(err.Error())
+						return m, nil
+					}
+
 					m.InputProvided = true
 					m.Loading = true
 					go func(m *model) {
@@ -670,9 +730,8 @@ func updateCrackHash(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	case backToMenuMsg:
 		m.Loading = false
 		m.Loaded = true
-		m.Ticks = 10
 		prog := m.ProgressBar.SetPercent(1.0)
-		return m, tea.Batch(tick(), prog)
+		return m, prog
 	}
 
 	if !m.Loading && !m.Loaded {
@@ -795,9 +854,6 @@ func chosenView(m model) string {
 		if !m.InputProvided {
 			msg = fmt.Sprintf("Okay, so we need you to define an associeted %s, a table %s, a table %s, a %s and a %s...",
 				keyword("alphabet"), keyword("height"), keyword("width"), keyword("hash method"), keyword("destination filename"))
-			if errorField != "" {
-				msg += fmt.Sprintf("\n\n%s", errorColor(errorField))
-			}
 			for i := 0; i < len(m.Views.createTable.input); i++ {
 				content += m.Views.createTable.input[i].View()
 				if i < len(m.Views.createTable.input)-1 {
@@ -809,31 +865,25 @@ func chosenView(m model) string {
 			msg = fmt.Sprintf("Generating your %s, please wait...", keyword("rainbow table"))
 			content = m.ProgressBar.View()
 			if m.Loaded {
-				content += fmt.Sprintf("\nTable successfully generated!\nYou will be redirected to the main menu in %ss (press %s to go back now)...", colorFg(strconv.Itoa(m.Ticks), "79"), keyword("esc"))
+				content += fmt.Sprintf("\nTable successfully generated!\nPress %s to go back...", keyword("esc"))
 			}
 		}
 
 	case 1:
 		if !m.InputProvided {
 			msg = fmt.Sprintf("Which %s file do you want to %s?", keyword("rainbow table"), keyword("load"))
-			if errorField != "" {
-				msg += fmt.Sprintf("\n\n%s", errorColor(errorField))
-			}
 			content += m.Views.loadTable.input[0].View()
 			content += "\n\n" + m.Views.loadTable.submitButton
 		} else if m.InputProvided {
 			msg = fmt.Sprintf("Loading your %s, please wait...", keyword("rainbow table"))
 			if m.Loaded {
-				content += fmt.Sprintf("Table successfully loaded!\nYou will be redirected to the main menu in %ss (press %s to go back now)...", colorFg(strconv.Itoa(m.Ticks), "79"), keyword("esc"))
+				content += fmt.Sprintf("Table successfully loaded!\nPress %s to go back...", keyword("esc"))
 			}
 		}
 
 	case 2:
 		if !m.InputProvided {
 			msg = fmt.Sprintf("There is all requested %s table informations:", keyword("rainbow"))
-			if errorField != "" {
-				msg += fmt.Sprintf("\n\n%s", errorColor(errorField))
-			}
 			content += m.Views.getTableInfo.input[0].View()
 			content += "\n\n" + m.Views.getTableInfo.submitButton
 		} else if m.InputProvided {
@@ -852,9 +902,6 @@ func chosenView(m model) string {
 	case 4:
 		if !m.InputProvided {
 			msg = fmt.Sprintf("Which %s do you want to try to crack?", keyword("hash"))
-			if errorField != "" {
-				msg += fmt.Sprintf("\n\n%s", errorColor(errorField))
-			}
 			for i := 0; i < len(m.Views.crackHash.input); i++ {
 				content += m.Views.crackHash.input[i].View()
 				if i < len(m.Views.crackHash.input)-1 {
@@ -865,14 +912,11 @@ func chosenView(m model) string {
 		} else if m.InputProvided {
 			msg = fmt.Sprintf("Cracking provided %s, please wait...", keyword("hash"))
 			content = m.ProgressBar.View()
-			if !m.Loading && m.ErrorMsg != "" {
-				content += "\n" + errorColor(m.ErrorMsg)
-			}
 			if m.Loaded {
 				if CurrentLoading.Error != nil {
 					content += errorColor(CurrentLoading.Error.Error())
 				} else {
-					content += fmt.Sprintf("\nHash successfully cracked! Clair text: %s\nYou will be redirected to the main menu in %ss (press %s to go back now)...", keyword(CurrentLoading.Res), colorFg(strconv.Itoa(m.Ticks), "79"), keyword("esc"))
+					content += fmt.Sprintf("\nHash successfully cracked! Clair text: %s\nPress %s to go back ...", keyword(CurrentLoading.Res), keyword("esc"))
 				}
 			}
 		}
@@ -892,7 +936,11 @@ func chosenView(m model) string {
 		logrus.Fatal("Invalid input!")
 	}
 
-	return msg + "\n\n" + content + "\n\n" + subtle("up/down, tab: select") + dot + subtle("enter: choose") + dot + subtle("esc: back/quit")
+	if m.ErrorMsg != "" {
+		errorField = "\n\n" + errorColor(m.ErrorMsg)
+	}
+
+	return msg + errorField + "\n\n" + content + "\n\n" + subtle("up/down, tab: select") + dot + subtle("enter: choose") + dot + subtle("esc: back/quit")
 }
 
 func cursor(label string, checked bool) string {
